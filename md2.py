@@ -1,3 +1,6 @@
+import colorsys
+import copy
+import numpy as np
 import tkinter as tk
 from tkinter import Button, Entry, Label, StringVar, ttk
 
@@ -47,7 +50,7 @@ class App():
             a = float(self.midden_x_var.get())
             b = float(self.midden_y_var.get())
             schaal = float(self.schaal_var.get())
-            max_aantal = float(self.max_aantal_var.get())
+            max_aantal = int(self.max_aantal_var.get())
             self.error_label.pack_forget()
         except Exception as e:
             print(e)
@@ -59,30 +62,33 @@ class App():
         print(f"Schaal: {self.schaal_var.get()}")
         print(f"Max Aantal: {self.max_aantal_var.get()}")
 
-        image = Image.new(mode="RGBA", size=(500, 500))
+        WIDTH = 500
+        image = Image.new(mode="RGBA", size=(WIDTH, WIDTH))
         pixels = image.load()
+        
 
-        x = 0
-        y = 0
+        for x in range(image.size[0]):
+            for y in range(image.size[1]):
+                mandel_values = self.mandelbrot((x - (0.75 * WIDTH)) / (WIDTH / 4),
+                                      (y - (WIDTH / 4)) / (WIDTH / 4), max_aantal)
+                # print(x, y, pixels[x, y], mandel_values)
+                pixels[x, y] = mandel_values
+                # pixels[x, y] = (mandel_values, mandel_values, mandel_values, 0)
 
-        while x < 500:
-            x += 0.01
-            while y < 500:
-                y += 0.01
-                mandel_values = self.mandelbrot(a, b, x, y, schaal, max_aantal)
-                image.putpixel((int(125 * mandel_values[1] + 2), int(125 * mandel_values[2] + 2)), (0, 0, 0))
-
-        image.save()
         image.show()
 
-    # Functie voor Mandelbrot algoritme
-    def mandelbrot(self, a, b, x, y, i, max_recursion):
-        # Stopconditie: als afstand van (a, b) >= 2 of als de teller >= 100
-        if sqrt(a * a + b * b) >= 2 or i >= max_recursion :
-            # print((i, a, b))
-            return (i, a, b)
-        # Recursie
-        return self.mandelbrot(a * a - b * b + x, 2 * a * b + y, x, y, i + 1, max_recursion)
+    def rgb_conv(self, i):
+        color = 255 * np.array(colorsys.hsv_to_rgb(i / 255.0, 1.0, 0.5))
+        return tuple(color.astype(int))
+
+    def mandelbrot(self, x, y, max_recursion):
+        c0 = complex(x, y)
+        c = 0
+        for i in range(1, max_recursion):
+            if abs(c) > 2:
+                return self.rgb_conv(i)
+            c = c * c + c0
+        return (0, 0, 0)
 
 
 if __name__ == "__main__":

@@ -78,7 +78,7 @@ class App():
         image.show()
 
     def rgb_conv(self, i):
-        color = 255 * np.array(colorsys.hsv_to_rgb(i / 255.0, 1.0, 0.5))
+        color = 255 * np.array(colorsys.hsv_to_rgb(i / 255.0, i % 1.0, 0.5))
         return tuple(color.astype(int))
 
     def mandelbrot(self, x, y, max_recursion):

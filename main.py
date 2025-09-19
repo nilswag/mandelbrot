@@ -2,6 +2,7 @@ import colorsys
 import random
 import tkinter as tk
 from tkinter import Button, Entry, Label, StringVar, ttk
+from tkinter import colorchooser
 
 from PIL.ImageTk import PhotoImage
 from PIL import Image, ImageTk
@@ -9,6 +10,10 @@ from PIL import Image, ImageTk
 from math import sqrt
 
 import numpy as np
+
+
+def rgb_to_hex(rgb):
+    return "#{0:02x}{1:02x}{2:02x}".format(*rgb)
 
 
 class App:
@@ -19,6 +24,29 @@ class App:
 
         # Maak de window niet resizable
         self.root.resizable(False, False)
+
+        self.mandelbrot_color = (255, 0, 255)
+        self.background_color = (255, 255, 255)
+        self.circle_color = (0, 0, 0)
+
+        Button(
+            self.root,
+            text="Select mandelbrot color",
+            command=lambda: self.pick_color("mandelbrot"),
+            background=rgb_to_hex(self.mandelbrot_color),
+        ).pack()
+        Button(
+            self.root,
+            text="Select background color",
+            command=lambda: self.pick_color("background"),
+            background=rgb_to_hex(self.background_color),
+        ).pack()
+        Button(
+            self.root,
+            text="Select circle color",
+            command=lambda: self.pick_color("circle"),
+            background=rgb_to_hex(self.circle_color),
+        ).pack()
 
         Label(self.root, text="Midden x").pack()
         self.midden_x_var = StringVar()
@@ -38,6 +66,8 @@ class App:
 
         Button(self.root, text="Go", command=self.get_input_values).pack()
 
+        self.image = ImageTk.PhotoImage()
+
         # self.image = tk.Image(self.root)
 
         self.error_label = Label(self.root, text="")
@@ -45,6 +75,17 @@ class App:
         self.canvas = Label(self.root)
 
         self.root.mainloop()
+
+    def pick_color(self, usage):
+        color = colorchooser.askcolor(title=f"Choose color for {usage}")[0]
+        if usage == "mandelbrot":
+            self.mandelbrot_color = color
+        elif usage == "background":
+            self.background_color = color
+        elif usage == "circle":
+            self.circle_color = color
+        else:
+            assert "Unknown usage" == True
 
     def get_input_values(self):
         try:
@@ -93,13 +134,13 @@ class App:
         for i in range(1, max_recursion):
             if abs(z) > 2:
                 if i % 2 == 0:
-                    return (255, 255, 255)
+                    return self.background_color
                 else:
-                    return (0, 0, 0)
+                    return self.circle_color
             z = z * z + c
 
         # print("Max recursion reached")
-        return (255, 0, 255)
+        return self.mandelbrot_color
 
 
 if __name__ == "__main__":

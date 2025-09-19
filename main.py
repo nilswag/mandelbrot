@@ -66,7 +66,7 @@ class App:
 
         Button(self.root, text="Go", command=self.get_input_values).pack()
 
-        self.image = ImageTk.PhotoImage()
+        # self.image = ImageTk.PhotoImage()
 
         # self.image = tk.Image(self.root)
 

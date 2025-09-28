@@ -9,9 +9,6 @@ from PIL import Image, ImageTk
 
 from math import sqrt
 
-import numpy as np
-
-
 def rgb_to_hex(rgb):
     return "#{0:02x}{1:02x}{2:02x}".format(*rgb)
 
@@ -66,13 +63,10 @@ class App:
 
         Button(self.root, text="Go", command=self.get_input_values).pack()
 
-        # self.image = ImageTk.PhotoImage()
-
-        # self.image = tk.Image(self.root)
-
         self.error_label = Label(self.root, text="")
 
         self.canvas = Label(self.root)
+        self.canvas.pack()
 
         self.root.mainloop()
 
@@ -123,10 +117,11 @@ class App:
                     ((y - (WIDTH / divider)) / (WIDTH / divider) - verschuiving_y),
                     max_aantal,
                 )
+
                 pixels[x, y] = mandel_values
 
-        # image.save()
-        image.show()
+        self.photo = PhotoImage(image)
+        self.canvas.configure(image=self.photo)
 
     def mandelbrot(self, x, y, max_recursion):
         c = complex(x, y)

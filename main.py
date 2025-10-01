@@ -1,192 +1,206 @@
-import colorsys
-import random
-import time
 import tkinter as tk
-from tkinter import END, Button, Entry, Label, StringVar, ttk
-from tkinter import colorchooser
-
-from PIL.ImageTk import PhotoImage
 from PIL import Image, ImageTk
+from tkinter import messagebox, colorchooser
 
-from math import sqrt
+from math import log, sqrt
 
+class ColorPicker(tk.Frame):
+    def __init__(self, master, text, color=(0, 0, 0)):
+        super().__init__(master)
 
-def rgb_to_hex(rgb):
-    return "#{0:02x}{1:02x}{2:02x}".format(*rgb)
+        self._rgb = color
+        self._hex = "#{:02x}{:02x}{:02x}".format(*color)
 
+        self.frame = tk.Frame(self, width=20, height=20, background=self._hex)
+        self.frame.pack(side="left")
 
-class App:
-    def __init__(self):
-        # Initieer tkinter and geef de window een titel
-        self.root = tk.Tk()
-        self.root.title("Mandelbrot")
+        self.button = tk.Button(self, text=text, command=self.click)
+        self.button.pack(side="left")
 
-        # Maak de window niet resizable
-        self.root.resizable(False, False)
+    def click(self):
+        self._rgb, self._hex = colorchooser.askcolor()
+        self.frame.configure(background=self.hex)
 
-        self.mandelbrot_color = (255, 0, 255)
-        self.background_color = (255, 255, 255)
-        self.circle_color = (0, 0, 0)
+    @property
+    def rgb(self):
+        return self._rgb
+    
+    @property
+    def hex(self):
+        return self._hex
 
-        self.btn_mandelbrot_color = Button(
-            self.root,
-            text="Select mandelbrot color",
-            command=lambda: self.pick_color("mandelbrot"),
-            background=rgb_to_hex(self.mandelbrot_color),
-        )
-        self.btn_mandelbrot_color.pack()
+# a = x coordinaat die getransformeerd wordt
+# b = y coordinaat die getransformeerd wordt
+# x = x coordinaat van middenpunt van mandelbroot
+# y = y coordinaat van middenpunt van mandelbroot
+# max_i = aantal iterations voordat het algoritme stops
+# a0 en b0 = de start waardes van het mandelfiguur, nuttig voor de catalogus
+def mandelbrot(x, y, max_i, a0=0, b0=0):
+    a, b = a0, b0
+    for i in range(max_i):
+        a_new = a * a - b * b + x
+        b_new = 2 * a * b + y
+        a, b = a_new, b_new
+        r2 = a * a + b * b
+        if r2 > 4:
+            return i + 1, sqrt(r2)
+    return max_i, sqrt(a * a + b * b)
 
-        self.btn_background_color = Button(
-            self.root,
-            text="Select background color",
-            command=lambda: self.pick_color("background"),
-            background=rgb_to_hex(self.background_color),
-        )
-        self.btn_background_color.pack()
+# Lineaire mapping van de variable v van het domein d1 naar d2
+def map(v, d1, d2):
+    a, b = d1
+    c, d = d2
+    return c + (v - a) * (d - c) / (b - a)
 
-        self.btn_circle_color = Button(
-            self.root,
-            text="Select circle color",
-            command=lambda: self.pick_color("circle"),
-            background=rgb_to_hex(self.circle_color),
-            foreground=rgb_to_hex((255, 255, 255)),
-        )
-        self.btn_circle_color.pack()
+# Op basis van t (t zit tussen 0 en 1) verander gelijkmatig de kleur
+def lerp_color(c1, c2, t):
+    return tuple(int(c1[i] + (c2[i] - c1[i]) * t) for i in range(3))
 
-        Label(self.root, text="Midden x").pack()
-        self.midden_x_var = StringVar()
-        self.inp_midden_x = Entry(self.root, textvariable=self.midden_x_var)
-        self.inp_midden_x.insert(END, "0.5")
-        self.inp_midden_x.pack()
+class App(tk.Frame):
+    def __init__(self, master):
+        # Programma instellingen en aanroep naar parent
+        super().__init__(master)
+        self.pack(fill="both", expand=True)
+        master.title("Mandelbrot")
+        master.resizable(False, False)
 
-        Label(self.root, text="Midden y").pack()
-        self.midden_y_var = StringVar()
-        self.inp_midden_y = Entry(self.root, textvariable=self.midden_y_var)
-        self.inp_midden_y.insert(END, "1")
-        self.inp_midden_y.pack()
+        input_frame = tk.Frame(self)
+        input_frame.pack(side="top", pady=20)
 
-        Label(self.root, text="Schaal").pack()
-        self.schaal_var = StringVar()
-        self.inp_schaal = Entry(self.root, textvariable=self.schaal_var)
-        self.inp_schaal.insert(END, "4")
-        self.inp_schaal.pack()
+        # Maak een dictionary met als key een leesbare naam en met als waarde te tekst van de label
+        labels = {"midden_x": "Midden X: ", "midden_y": "Midden Y: ", "zoom": "Zoom: ", "max_aantal": "Maximum aantal: "}
+        self.vars = {}
+        # Hierdoor krijgen wij elementen in de vorm van i, de key van de tekst
+        for i, key in enumerate(labels):
+            var = tk.StringVar()
+            var.set(0)
+            self.vars[key] = var
+            # Hiermee zetten wij alle keys gelijk aan de input variabele
 
-        Label(self.root, text="Max aantal").pack()
-        self.max_aantal_var = StringVar()
-        self.inp_max_aantal = Entry(self.root, textvariable=self.max_aantal_var)
-        self.inp_max_aantal.insert(END, "1000")
-        self.inp_max_aantal.pack()
+            # Door i te gebruiken kunnen wij de entries op een nette manier sorteren in de layout
+            tk.Label(input_frame, text=labels[key]).grid(row=i, column=0)
+            entry = tk.Entry(input_frame, textvariable=var)
+            entry.grid(row=i, column=1)
+            # Wij hoeven verder niks meer met de entries te doen gezien de entries zelf een reference hebben naar de stringvars, deze hebben wij wel opgeslagen
 
-        Button(self.root, text="Go", command=self.get_input_values).pack()
+        # Zet een aantal default waardes
+        self.vars["zoom"].set(1.0)
+        self.vars["max_aantal"].set(100)
 
-        self.error_label = Label(self.root, text="")
+        self.image_label = tk.Label(self)
+        self.image_label.pack(fill="both", expand=True, side="top", padx=10, pady=10)
 
-        self.canvas = Label(self.root)
-        self.canvas.pack()
-        self.canvas.bind("<Button-1>", self.zoom_in)
-        self.canvas.bind("<Button-3>", self.zoom_uit)
+        self.image_label.bind("<Button-1>", self.left_click)
+        self.image_label.bind("<Button-3>", self.right_click)
 
-        self.root.mainloop()
+        # Knop gedoe
+        btn_frame = tk.Frame(input_frame)
+        btn_frame.grid(row=4, column=1)
 
-    def pick_color(self, usage):
-        color = colorchooser.askcolor(title=f"Choose color for {usage}")[0]
-        if color is None:
+        self.color0 = ColorPicker(btn_frame, "Kleur 1", color=(180, 0, 0))
+        self.color0.pack(side="left", padx=3)
+
+        self.color1 = ColorPicker(btn_frame, "Kleur 2", color=(255, 220, 0))
+        self.color1.pack(side="left", padx=3)
+
+        self.backgr = ColorPicker(btn_frame, "Achtergrond kleur", color=(0, 0, 0))
+        self.backgr.pack(side="left", padx=3)
+
+        self.go_btn = tk.Button(btn_frame, command=self.go, text="Go!", width=4)
+        self.go_btn.pack(side="left", padx=3)
+
+    def assert_inputs(self):
+        vars = []
+
+        # Dit checks dat daadwerkelijk alle waardes getallen zijn anders kun je niet verder
+        for var in self.vars.values():
+            try:
+                input = float(var.get())
+            except:
+                # Als er een niet getal in de inputs staat komt er een popup
+                messagebox.showerror("Invalid input", f"All inputs must be numeric, {var.get()} is not numeric!")
+                return False
+        return True
+
+    def click(self, left, x, y):
+        if not self.assert_inputs():
             return
 
-        # Determine perceived luminance of chosen color. Ref: https://stackoverflow.com/questions/1855884/determine-font-color-based-on-background-color
-        luminance = (0.299 * color[0] + 0.587 * color[1] + 0.114 * color[2]) / 255
-        print(luminance)
-        if luminance > 0.5:
-            font_color = (0, 0, 0)
+        # Verander de zoom op basis van of er in- of uitgezoomed wordt
+        zoom = self.vars["zoom"]
+        midden_x = self.vars["midden_x"]
+        midden_y = self.vars["midden_y"]
+
+        if left:
+            zoom.set(float(zoom.get()) * 1.25)
         else:
-            font_color = (255, 255, 255)
+            zoom.set(float(zoom.get()) / 1.25)
 
-        if usage == "mandelbrot":
-            self.mandelbrot_color = color
-            self.btn_mandelbrot_color.configure(
-                background=rgb_to_hex(color), foreground=rgb_to_hex(font_color)
-            )
-        elif usage == "background":
-            self.background_color = color
-            self.btn_background_color.configure(
-                background=rgb_to_hex(color), foreground=rgb_to_hex(font_color)
-            )
-        elif usage == "circle":
-            self.circle_color = color
-            self.btn_circle_color.configure(
-                background=rgb_to_hex(color), foreground=rgb_to_hex(font_color)
-            )
-        else:
-            assert "Unknown usage" == True
+        cx = self.image.width / 2 # Bereken x coordinaat van midden van scherm
+        cy = self.image.height / 2 # Bereken y coordinaat van midden van scherm
 
-    def zoom_in(self, *args):
-        self.schaal_var.set(float(self.schaal_var.get()) - 0.1)
-        self.get_input_values()
+        # Verschil van muis positie tot middenpunt van scherm
+        dx = x - cx
+        dy = y - cy
 
-    def zoom_uit(self, *args):
-        self.schaal_var.set(float(self.schaal_var.get()) + 0.1)
-        self.get_input_values()
+        # Gezien we op een punt op het complexe vak gecenteerd staan moeten wij de muis vanuit het midden van ons scherm zien te mappen naar het complexe vak
+        # Hiermee berekenen wij het verschil vanuit het midden wat wij kunnen toevoegen aan het verschuiven van het figuur
+        midden_dx = map(dx, [-cx, cx], [-2 / float(zoom.get()), 2 / float(zoom.get())])
+        midden_dy = map(dy, [-cy, cy], [2 / float(zoom.get()), -2 / float(zoom.get())])
 
-    def get_input_values(self):
-        try:
+        midden_x.set(float(midden_x.get()) + midden_dx)
+        midden_y.set(float(midden_y.get()) + midden_dy)
 
-            a = float(self.midden_x_var.get())
-            b = float(self.midden_y_var.get())
-            schaal = float(self.schaal_var.get())
-            max_aantal = int(self.max_aantal_var.get())
-            self.error_label.pack_forget()
-        except Exception as e:
-            print(e)
-            self.error_label.configure(text=f"Error: {e}")
-            self.error_label.pack()
+        self.go()
 
-        print(f"Midden x: {self.midden_x_var.get()}")
-        print(f"Midden y: {self.midden_y_var.get()}")
-        print(f"Schaal: {self.schaal_var.get()}")
-        print(f"Max Aantal: {self.max_aantal_var.get()}")
+    def left_click(self, event):
+        self.click(True, event.x, event.y)
 
-        WIDTH = 500
-        image = Image.new(mode="RGBA", size=(WIDTH, WIDTH))
-        pixels = image.load()
+    def right_click(self, event):
+        self.click(False, event.x, event.y)
 
-        x = 0
-        y = 0
+    def go(self):
+        if not self.assert_inputs():
+            return
 
-        multiplier = a  # <- Dit is de x-as verschuiving 0.5 is 0
-        divider = schaal  # <- Zoom level aka schaal 1 dan is die gecentreerd
-        verschuiving_y = b
+        # Zet alle references van de inputs in locale variabelen
+        midden_x = float(self.vars["midden_x"].get())
+        midden_y = float(self.vars["midden_y"].get())
+        zoom = float(self.vars["zoom"].get())
+        max_aantal = int(self.vars["max_aantal"].get())
 
-        start = time.time()
-        for x in range(WIDTH):
-            for y in range(WIDTH):
-                mandel_values = self.mandelbrot(
-                    (x - (multiplier * WIDTH)) / (WIDTH / divider),
-                    ((y - (WIDTH / divider)) / (WIDTH / divider) - verschuiving_y),
-                    max_aantal,
-                )
+        # Maak het plaatje aan (dit is persistant gezien het onderdeel is van het app object)
+        self.image = Image.new("RGBA", (self.image_label.winfo_width(), self.image_label.winfo_height()), "black")
 
-                pixels[x, y] = mandel_values
+        # Loop door alle pixels heen van het plaatje
+        for px in range(self.image.width):
+            for py in range(self.image.height):
+                # Hier komt de map functie van pas, we mappen alle pixels naar het complexe vlak, hierdoor is het mandelgetal ook altijd in hoge resolutie
+                a = midden_x + map(px, [0, self.image.width - 1], [-2 / zoom, 2 / zoom])
+                b = midden_y + map(py, [0, self.image.height - 1], [2 / zoom, -2 / zoom])
+                i, r2 = mandelbrot(a, b, max_aantal)
+                i *= 7
 
-        end = time.time()
-        print(f"Generating Mandelbrot function took: {end-start}")
-
-        self.photo = PhotoImage(image)
-        self.canvas.configure(image=self.photo)
-
-    def mandelbrot(self, x, y, max_recursion):
-        c = complex(x, y)
-        z = 0
-        for i in range(1, max_recursion):
-            if abs(z) > 2:
-                if i % 2 == 0:
-                    return self.background_color
+                # Hier worden de mooie kleuren gezet
+                color = (0, 0, 0)
+                if i >= max_aantal:
+                    # Als het max aantal iterations is bereikt gebruik achtergrond kleur
+                    color = self.backgr.rgb
                 else:
-                    return self.circle_color
-            z = z * z + c
+                    # Formule is van internet geplukt, z_n = sqrt(r^2)
+                    # dus log(z_n) = log(sqrt(r^2)) = 0.5 * log(r^2)
+                    v = i + 1 - log(sqrt(r2)) / log(2)  # smooth maken
+                    t = v / max_aantal                  # normalizeren
+                    color = lerp_color(self.color0.rgb, self.color1.rgb, t)
+                
+                self.image.putpixel((px, py), color)
 
-        # print("Max recursion reached")
-        return self.mandelbrot_color
-
+        # Het gegenereerde plaatje wordt in het window gezet
+        self.ref = ImageTk.PhotoImage(self.image)
+        self.image_label.configure(image=self.ref)
 
 if __name__ == "__main__":
-    App()
+    root = tk.Tk()
+    root.geometry("500x600")
+    app = App(root)
+    root.mainloop()

@@ -1,5 +1,6 @@
 from math import sqrt
 
+
 # a = x coordinaat die getransformeerd wordt
 # b = y coordinaat die getransformeerd wordt
 # x = x coordinaat van middenpunt van mandelbroot
@@ -17,11 +18,13 @@ def mandelbrot(x, y, max_i, a0=0, b0=0):
             return i + 1, sqrt(r2)
     return max_i, sqrt(a * a + b * b)
 
+
 # Lineaire mapping van de variable v van het domein d1 naar d2
-def map(v, d1, d2):
+def map_domain(v, d1, d2):
     a, b = d1
     c, d = d2
     return c + (v - a) * (d - c) / (b - a)
+
 
 # Op basis van t (t zit tussen 0 en 1) verander gelijkmatig de kleur
 def lerp_color(c1, c2, t):

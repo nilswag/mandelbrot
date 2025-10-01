@@ -2,7 +2,7 @@ import colorsys
 import random
 import time
 import tkinter as tk
-from tkinter import Button, Entry, Label, StringVar, ttk
+from tkinter import END, Button, Entry, Label, StringVar, ttk
 from tkinter import colorchooser
 
 from PIL.ImageTk import PhotoImage
@@ -41,7 +41,6 @@ class App:
             text="Select background color",
             command=lambda: self.pick_color("background"),
             background=rgb_to_hex(self.background_color),
-            foreground=rgb_to_hex((255, 255, 255)),
         )
         self.btn_background_color.pack()
 
@@ -50,24 +49,33 @@ class App:
             text="Select circle color",
             command=lambda: self.pick_color("circle"),
             background=rgb_to_hex(self.circle_color),
+            foreground=rgb_to_hex((255, 255, 255)),
         )
         self.btn_circle_color.pack()
 
         Label(self.root, text="Midden x").pack()
         self.midden_x_var = StringVar()
-        Entry(self.root, textvariable=self.midden_x_var).pack()
+        self.inp_midden_x = Entry(self.root, textvariable=self.midden_x_var)
+        self.inp_midden_x.insert(END, "0.5")
+        self.inp_midden_x.pack()
 
         Label(self.root, text="Midden y").pack()
         self.midden_y_var = StringVar()
-        Entry(self.root, textvariable=self.midden_y_var).pack()
+        self.inp_midden_y = Entry(self.root, textvariable=self.midden_y_var)
+        self.inp_midden_y.insert(END, "1")
+        self.inp_midden_y.pack()
 
         Label(self.root, text="Schaal").pack()
         self.schaal_var = StringVar()
-        Entry(self.root, textvariable=self.schaal_var).pack()
+        self.inp_schaal = Entry(self.root, textvariable=self.schaal_var)
+        self.inp_schaal.insert(END, "4")
+        self.inp_schaal.pack()
 
         Label(self.root, text="Max aantal").pack()
         self.max_aantal_var = StringVar()
-        Entry(self.root, textvariable=self.max_aantal_var).pack()
+        self.inp_max_aantal = Entry(self.root, textvariable=self.max_aantal_var)
+        self.inp_max_aantal.insert(END, "1000")
+        self.inp_max_aantal.pack()
 
         Button(self.root, text="Go", command=self.get_input_values).pack()
 
@@ -75,6 +83,8 @@ class App:
 
         self.canvas = Label(self.root)
         self.canvas.pack()
+        self.canvas.bind("<Button-1>", self.zoom_in)
+        self.canvas.bind("<Button-3>", self.zoom_uit)
 
         self.root.mainloop()
 
@@ -108,6 +118,14 @@ class App:
             )
         else:
             assert "Unknown usage" == True
+
+    def zoom_in(self, *args):
+        self.schaal_var.set(float(self.schaal_var.get()) - 0.1)
+        self.get_input_values()
+
+    def zoom_uit(self, *args):
+        self.schaal_var.set(float(self.schaal_var.get()) + 0.1)
+        self.get_input_values()
 
     def get_input_values(self):
         try:

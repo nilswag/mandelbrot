@@ -1,5 +1,6 @@
 import colorsys
 import random
+import time
 import tkinter as tk
 from tkinter import Button, Entry, Label, StringVar, ttk
 from tkinter import colorchooser
@@ -8,6 +9,7 @@ from PIL.ImageTk import PhotoImage
 from PIL import Image, ImageTk
 
 from math import sqrt
+
 
 def rgb_to_hex(rgb):
     return "#{0:02x}{1:02x}{2:02x}".format(*rgb)
@@ -26,24 +28,30 @@ class App:
         self.background_color = (255, 255, 255)
         self.circle_color = (0, 0, 0)
 
-        Button(
+        self.btn_mandelbrot_color = Button(
             self.root,
             text="Select mandelbrot color",
             command=lambda: self.pick_color("mandelbrot"),
             background=rgb_to_hex(self.mandelbrot_color),
-        ).pack()
-        Button(
+        )
+        self.btn_mandelbrot_color.pack()
+
+        self.btn_background_color = Button(
             self.root,
             text="Select background color",
             command=lambda: self.pick_color("background"),
             background=rgb_to_hex(self.background_color),
-        ).pack()
-        Button(
+            foreground=rgb_to_hex((255, 255, 255)),
+        )
+        self.btn_background_color.pack()
+
+        self.btn_circle_color = Button(
             self.root,
             text="Select circle color",
             command=lambda: self.pick_color("circle"),
             background=rgb_to_hex(self.circle_color),
-        ).pack()
+        )
+        self.btn_circle_color.pack()
 
         Label(self.root, text="Midden x").pack()
         self.midden_x_var = StringVar()
@@ -72,12 +80,32 @@ class App:
 
     def pick_color(self, usage):
         color = colorchooser.askcolor(title=f"Choose color for {usage}")[0]
+        if color is None:
+            return
+
+        # Determine perceived luminance of chosen color. Ref: https://stackoverflow.com/questions/1855884/determine-font-color-based-on-background-color
+        luminance = (0.299 * color[0] + 0.587 * color[1] + 0.114 * color[2]) / 255
+        print(luminance)
+        if luminance > 0.5:
+            font_color = (0, 0, 0)
+        else:
+            font_color = (255, 255, 255)
+
         if usage == "mandelbrot":
             self.mandelbrot_color = color
+            self.btn_mandelbrot_color.configure(
+                background=rgb_to_hex(color), foreground=rgb_to_hex(font_color)
+            )
         elif usage == "background":
             self.background_color = color
+            self.btn_background_color.configure(
+                background=rgb_to_hex(color), foreground=rgb_to_hex(font_color)
+            )
         elif usage == "circle":
             self.circle_color = color
+            self.btn_circle_color.configure(
+                background=rgb_to_hex(color), foreground=rgb_to_hex(font_color)
+            )
         else:
             assert "Unknown usage" == True
 
@@ -110,6 +138,7 @@ class App:
         divider = schaal  # <- Zoom level aka schaal 1 dan is die gecentreerd
         verschuiving_y = b
 
+        start = time.time()
         for x in range(WIDTH):
             for y in range(WIDTH):
                 mandel_values = self.mandelbrot(
@@ -119,6 +148,9 @@ class App:
                 )
 
                 pixels[x, y] = mandel_values
+
+        end = time.time()
+        print(f"Generating Mandelbrot function took: {end-start}")
 
         self.photo = PhotoImage(image)
         self.canvas.configure(image=self.photo)

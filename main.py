@@ -32,7 +32,7 @@ class Catalog(tk.Toplevel):
             entry.grid(row=0, column=i, padx=5, pady=10)
             self.entries.append(entry)
 
-        tk.Button(self, text="Load", command=lambda: self.selected_callback(self), width=10).grid(row=1, column=3)
+        tk.Button(self, text="Load", command=lambda: self.selected_callback(self), width=10).grid(row=1, column=len(self.entries) - 1)
 
         self.geometry(f"{len(self.entries) * entry_width}x{entry_height + 30}")
         self.resizable(False, False)

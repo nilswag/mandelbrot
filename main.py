@@ -1,60 +1,48 @@
 import tkinter as tk
 from PIL import Image, ImageTk
-from tkinter import messagebox, colorchooser
+from tkinter import messagebox
 
 from math import log, sqrt
 
-class ColorPicker(tk.Frame):
-    def __init__(self, master, text, color=(0, 0, 0)):
+from util import *
+from widgets import *
+
+class Catalog(tk.Toplevel):
+    def __init__(self, master, selected_callback):
         super().__init__(master)
 
-        self._rgb = color
-        self._hex = "#{:02x}{:02x}{:02x}".format(*color)
+        self.selected_callback = selected_callback
 
-        self.frame = tk.Frame(self, width=20, height=20, background=self._hex)
-        self.frame.pack(side="left")
+        self.datasets = {
+            # Path van het plaatje (midden_x, midden_y, zoom, max_aantal)
+            "images/1.png": (0, 0, 1.0, 100),
+            "images/2.png": (0, 0, 1.0, 100),
+            "images/3.png": (0, 0, 1.0, 100),
+            "images/4.png": (0, 0, 1.0, 100)
+        }
 
-        self.button = tk.Button(self, text=text, command=self.click)
-        self.button.pack(side="left")
+        entry_width = 140
+        entry_height = 180
 
-    def click(self):
-        self._rgb, self._hex = colorchooser.askcolor()
-        self.frame.configure(background=self.hex)
+        self.entries = []
+        self.selected = None
 
-    @property
-    def rgb(self):
-        return self._rgb
-    
-    @property
-    def hex(self):
-        return self._hex
+        for i, key in enumerate(self.datasets.keys()):
+            entry = CatalogEntry(self, key, self.select_entry)
+            entry.grid(row=0, column=i, padx=5, pady=10)
+            self.entries.append(entry)
 
-# a = x coordinaat die getransformeerd wordt
-# b = y coordinaat die getransformeerd wordt
-# x = x coordinaat van middenpunt van mandelbroot
-# y = y coordinaat van middenpunt van mandelbroot
-# max_i = aantal iterations voordat het algoritme stops
-# a0 en b0 = de start waardes van het mandelfiguur, nuttig voor de catalogus
-def mandelbrot(x, y, max_i, a0=0, b0=0):
-    a, b = a0, b0
-    for i in range(max_i):
-        a_new = a * a - b * b + x
-        b_new = 2 * a * b + y
-        a, b = a_new, b_new
-        r2 = a * a + b * b
-        if r2 > 4:
-            return i + 1, sqrt(r2)
-    return max_i, sqrt(a * a + b * b)
+        tk.Button(self, text="Load", command=lambda: self.selected_callback(self), width=10).grid(row=1, column=3)
 
-# Lineaire mapping van de variable v van het domein d1 naar d2
-def map(v, d1, d2):
-    a, b = d1
-    c, d = d2
-    return c + (v - a) * (d - c) / (b - a)
+        self.geometry(f"{len(self.entries) * entry_width}x{entry_height + 30}")
+        self.resizable(False, False)
 
-# Op basis van t (t zit tussen 0 en 1) verander gelijkmatig de kleur
-def lerp_color(c1, c2, t):
-    return tuple(int(c1[i] + (c2[i] - c1[i]) * t) for i in range(3))
+    def select_entry(self, entry):
+        if self.selected:
+            self.selected.set_selected(False)
+        
+        entry.set_selected(True)
+        self.selected = entry
 
 class App(tk.Frame):
     def __init__(self, master):
@@ -108,6 +96,21 @@ class App(tk.Frame):
 
         self.go_btn = tk.Button(btn_frame, command=self.go, text="Go!", width=4)
         self.go_btn.pack(side="left", padx=3)
+
+        self.examples_btn = tk.Button(btn_frame, command=lambda: Catalog(self, self.examples_callback), text="Examples")
+        self.examples_btn.pack(side="left", padx=3)
+
+    def examples_callback(self, catalog):
+        catalog.destroy()
+        if not catalog.selected:
+            return
+        
+        selected = catalog.datasets[catalog.selected.path]
+        
+        self.vars["midden_x"].set(selected[0])
+        self.vars["midden_y"].set(selected[1])
+        self.vars["zoom"].set(selected[2])
+        self.vars["max_aantal"].set(selected[3])
 
     def assert_inputs(self):
         vars = []

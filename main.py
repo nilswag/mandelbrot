@@ -6,19 +6,20 @@ from PIL import Image, ImageTk
 # b = y coordinaat die getransformeerd wordt
 # x = x coordinaat van middenpunt van mandelbroot
 # y = y coordinaat van middenpunt van mandelbroot
-def mandelbrot(a, b, x, y, max_i):
+def mandelbrot(x, y, max_i):
+    a, b = 0, 0
     for i in range(max_i):
         a_new = a * a - b * b + x
         b_new = 2 * a * b + y
         a, b = a_new, b_new
         if a * a + b * b > 4:
-            return (i + 1, a, b)
-    return (max_i, a, b)
+            return i + 1
+    return max_i
 
 def map(v, d1, d2):
     a, b = d1
     c, d = d2
-    return c + (v - a) * (d - c) / (b - c)
+    return c + (v - a) * (d - c) / (b - a)
 
 class App(tk.Frame):
     def __init__(self, master: tk.Tk):
@@ -74,7 +75,7 @@ class App(tk.Frame):
         self.vars[2].set(zoom + dir * 0.25)
 
         self.vars[0].set(map(x, [0, self.image.width - 1], [-2 / zoom, 2 / zoom]))
-        self.vars[1].set(map(y, [0, self.image.width - 1], [-2 / zoom, 2 / zoom]))
+        self.vars[1].set(map(y, [0, self.image.height - 1], [2 / zoom, -2 / zoom]))
 
         self.go()
 
@@ -96,11 +97,9 @@ class App(tk.Frame):
 
         for px in range(self.image.width):
             for py in range(self.image.height):
-                scale_x = 4 / zoom
-                scale_y = scale_x * self.image.height / self.image.width
-                a = midden_x + map(px, [0, self.image.width - 1], [-2 / zoom, 2 / zoom])
-                b = midden_y + map(py, [0, self.image.height - 1], [-2 / zoom, 2 / zoom])
-                i, mx, my = mandelbrot(a, b, midden_x, midden_y, max_aantal)
+                a = midden_x - map(px, [0, self.image.width - 1], [-2 / zoom, 2 / zoom])
+                b = midden_y - map(py, [0, self.image.height - 1], [-2 / zoom, 2 / zoom])
+                i = mandelbrot(a, b, max_aantal)
                 
                 self.image.putpixel((px, py), (0, 255 % i * 20, 0))
 
@@ -108,8 +107,6 @@ class App(tk.Frame):
         self.image_label.configure(image=self.ref)
 
 if __name__ == "__main__":
-    print(mandelbrot(0, 0, 0.5, 0.8, 100))
-
     root = tk.Tk()
     root.geometry("500x600")
     app = App(root)

@@ -178,8 +178,8 @@ class App(tk.Frame):
 
         # Gezien we op een punt op het complexe vak gecentreerd staan moeten wij de muis vanuit het midden van ons scherm zien te mappen naar het complexe vak
         # Hiermee berekenen wij het verschil vanuit het midden wat wij kunnen toevoegen aan het verschuiven van het figuur
-        midden_dx = map(dx, [-cx, cx], [-2 / float(zoom.get()), 2 / float(zoom.get())])
-        midden_dy = map(dy, [-cy, cy], [2 / float(zoom.get()), -2 / float(zoom.get())])
+        midden_dx = map_domain(dx, [-cx, cx], [-2 / float(zoom.get()), 2 / float(zoom.get())])
+        midden_dy = map_domain(dy, [-cy, cy], [2 / float(zoom.get()), -2 / float(zoom.get())])
 
         midden_x.set(float(midden_x.get()) + midden_dx)
         midden_y.set(float(midden_y.get()) + midden_dy)
